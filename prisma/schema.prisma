@@ -18,7 +18,7 @@ generator client {
 model usuario {
   id_usuario    Int             @id @default(autoincrement()) @map("id_usuario")
   nombre        String
-  email         String
+  email         String          @unique
   contraseña    String          @map("contraseña")
   id_rol        Int
   rol           rol             @relation("usuario_to_rol", fields: [id_rol], references: [id_rol])
