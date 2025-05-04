@@ -1,0 +1,296 @@
+// -------------------------------------------
+// 1) Conexión a PostgreSQL: 
+//    DATABASE_URL="postgresql://postgres:1234@localhost:5432/HALL?schema=public"
+// -------------------------------------------
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------
+// Modelos diagrama HALL.drawio.png
+// -------------------------------------------
+
+model usuario {
+  id_usuario    Int             @id @default(autoincrement()) @map("id_usuario")
+  nombre        String
+  email         String
+  contraseña    String          @map("contraseña")
+  id_rol        Int
+  rol           rol             @relation("usuario_to_rol", fields: [id_rol], references: [id_rol])
+
+  biblioteca    biblioteca[]    @relation("usuario_to_biblioteca")
+  amistadA      amistad[]       @relation("amistad_usuario_a")
+  amistadB      amistad[]       @relation("amistad_usuario_b")
+  solicitudEnv  solicitud[]     @relation("solicitud_solicitante")
+  solicitudRec  solicitud[]     @relation("solicitud_receptor")
+  transaccion   transaccion[]   @relation("usuario_to_transaccion")
+  suscripcion   suscripcion[]   @relation("usuario_to_suscripcion")
+
+  @@map("usuario")
+}
+
+model rol {
+  id_rol   Int         @id @default(autoincrement()) @map("id_rol")
+  nombre   String
+
+  usuario  usuario[]   @relation("usuario_to_rol")
+
+  @@map("rol")
+}
+
+model amistad {
+  id_amistad   Int      @id @default(autoincrement()) @map("id_amistad")
+  id_usuario_a Int
+  id_usuario_b Int
+
+  usuarioA     usuario  @relation("amistad_usuario_a", fields: [id_usuario_a], references: [id_usuario])
+  usuarioB     usuario  @relation("amistad_usuario_b", fields: [id_usuario_b], references: [id_usuario])
+
+  @@map("amistad")
+}
+
+model biblioteca {
+  id_biblioteca         Int                  @id @default(autoincrement()) @map("id_biblioteca")
+  id_usuario            Int
+  id_biblioteca_detalle Int
+
+  usuario               usuario              @relation("usuario_to_biblioteca", fields: [id_usuario], references: [id_usuario])
+  detalle               biblioteca_detalle   @relation(fields: [id_biblioteca_detalle], references: [id_biblioteca_detalle])
+
+  @@map("biblioteca")
+}
+
+model biblioteca_detalle {
+  id_biblioteca_detalle Int                  @id @default(autoincrement()) @map("id_biblioteca_detalle")
+  id_key                Int
+
+  key                   key                  @relation(fields: [id_key], references: [id_key])
+  biblioteca            biblioteca[]
+
+  @@map("biblioteca_detalle")
+}
+
+model evento {
+  id_evento        Int            @id @default(autoincrement()) @map("id_evento")
+  fecha_inicio     DateTime
+  id_regalo_evento Int
+  titulo           String
+  fecha_fin        DateTime
+  estado           String
+  descripcion      String
+
+  regalo_evento    regalo_evento  @relation(fields: [id_regalo_evento], references: [id_regalo_evento])
+
+  @@map("evento")
+}
+
+model categoria_juego {
+  id_categoria_juego Int       @id @default(autoincrement()) @map("id_categoria_juego")
+  nombre             String
+  descripcion        String
+
+  juego              juego[]
+
+  @@map("categoria_juego")
+}
+
+model juego {
+  id_juego            Int                    @id @default(autoincrement()) @map("id_juego")
+  titulo              String
+  descripcion         String
+  id_categoria_juego  Int
+  cantidad            Int
+  cantidad_disponible Int
+
+  categoria           categoria_juego        @relation(fields: [id_categoria_juego], references: [id_categoria_juego])
+  key                 key[]
+  detalle_transaccion detalle_transaccion[]
+  juego_suscripcion   juego_suscripcion[]
+  regalo_evento       regalo_evento[]
+
+  @@map("juego")
+}
+
+model key {
+  id_key        Int                  @id @default(autoincrement()) @map("id_key")
+  id_juego      Int
+  key           String
+  id_estado_key Int
+  id_proveedor  Int
+
+  juego               juego               @relation(fields: [id_juego], references: [id_juego])
+  estado_key          estado_key          @relation(fields: [id_estado_key], references: [id_estado_key])
+  proveedor           proveedores         @relation(fields: [id_proveedor], references: [id_proveedor])
+  biblioteca_detalle  biblioteca_detalle[]
+  transaccion_key     transaccion_key[]
+
+  @@map("key")
+}
+
+model estado_key {
+  id_estado_key Int      @id @default(autoincrement()) @map("id_estado_key")
+  nombre        String
+
+  key           key[]
+
+  @@map("estado_key")
+}
+
+model proveedores {
+  id_proveedor Int      @id @default(autoincrement()) @map("id_proveedor")
+  nombre       String
+  contacto     String
+  correo       String
+
+  key          key[]
+
+  @@map("proveedores")
+}
+
+model solicitud {
+  id_solicitud       Int               @id @default(autoincrement()) @map("id_solicitud")
+  id_solicitante     Int
+  id_receptor        Int
+  id_estado          Int
+  fecha_solicitud    DateTime
+  fecha_confirmacion DateTime
+
+  solicitante        usuario           @relation("solicitud_solicitante", fields: [id_solicitante], references: [id_usuario])
+  receptor           usuario           @relation("solicitud_receptor", fields: [id_receptor], references: [id_usuario])
+  estado_solicitud   estado_solicitud  @relation(fields: [id_estado], references: [id_estado_solicitud])
+
+  @@map("solicitud")
+}
+
+model estado_solicitud {
+  id_estado_solicitud Int             @id @default(autoincrement()) @map("id_estado_solicitud")
+  nombre              String
+
+  solicitud           solicitud[]
+
+  @@map("estado_solicitud")
+}
+
+model transaccion {
+  id_transaccion      Int                  @id @default(autoincrement()) @map("id_transaccion")
+  id_usuario          Int
+  id_tipo_transaccion Int
+  monto               Decimal              @db.Decimal(10, 2)
+  descripcion         String
+
+  usuario             usuario              @relation("usuario_to_transaccion", fields: [id_usuario], references: [id_usuario])
+  tipo_transaccion    tipo_transaccion     @relation(fields: [id_tipo_transaccion], references: [id_tipo_transaccion])
+  detalle_transaccion detalle_transaccion[]
+  transaccion_key     transaccion_key[]
+
+  @@map("transaccion")
+}
+
+model tipo_transaccion {
+  id_tipo_transaccion Int             @id @default(autoincrement()) @map("id_tipo_transaccion")
+  nombre              String
+
+  transaccion         transaccion[]
+
+  @@map("tipo_transaccion")
+}
+
+model detalle_transaccion {
+  id_detalle_transaccion Int         @id @default(autoincrement()) @map("id_detalle_transaccion")
+  id_transaccion         Int
+  id_juego               Int
+  cantidad               Int
+  precio_unitario        Decimal     @db.Decimal(10, 2)
+
+  transaccion            transaccion @relation(fields: [id_transaccion], references: [id_transaccion])
+  juego                  juego       @relation(fields: [id_juego], references: [id_juego])
+
+  @@map("detalle_transaccion")
+}
+
+model transaccion_key {
+  id_transaccion_key Int    @id @default(autoincrement()) @map("id_transaccion_key")
+  id_transaccion     Int
+  id_key             Int
+
+  transaccion        transaccion @relation(fields: [id_transaccion], references: [id_transaccion])
+  key                key         @relation(fields: [id_key], references: [id_key])
+
+  @@map("transaccion_key")
+}
+
+model suscripcion {
+  id_suscripcion        Int                 @id @default(autoincrement()) @map("id_suscripcion")
+  id_usuario            Int
+  id_estado_suscripcion Int
+  fecha_inicio          DateTime
+  fecha_fin             DateTime
+  id_tipo_suscripcion   Int
+
+  usuario             usuario             @relation("usuario_to_suscripcion", fields: [id_usuario], references: [id_usuario])
+  estado_suscripcion  estado_suscripcion  @relation(fields: [id_estado_suscripcion], references: [id_estado_suscripcion])
+  tipo_suscripcion    tipo_suscripcion    @relation(fields: [id_tipo_suscripcion], references: [id_tipo_suscripcion])
+
+  @@map("suscripcion")
+}
+
+model tipo_suscripcion {
+  id_tipo_suscripcion Int                 @id @default(autoincrement()) @map("id_tipo_suscripcion")
+  nombre              String
+  precio              Decimal             @db.Decimal(10, 2)
+
+  suscripcion         suscripcion[]
+  juego_suscripcion   juego_suscripcion[]
+
+  @@map("tipo_suscripcion")
+}
+
+model estado_suscripcion {
+  id_estado_suscripcion Int              @id @default(autoincrement()) @map("id_estado_suscripcion")
+  nombre                String
+
+  suscripcion           suscripcion[]
+
+  @@map("estado_suscripcion")
+}
+
+model juego_suscripcion {
+  id_key_suscripcion   Int                      @id @default(autoincrement()) @map("id_key_suscripcion")
+  id_tipo_suscripcion  Int
+  id_juego             Int
+
+  tipo_suscripcion     tipo_suscripcion         @relation(fields: [id_tipo_suscripcion], references: [id_tipo_suscripcion])
+  juego                juego                    @relation(fields: [id_juego], references: [id_juego])
+  jerarquia_padre      jerarquia_suscripciones[] @relation("jerarquia_padre")
+  jerarquia_hija       jerarquia_suscripciones[] @relation("jerarquia_hija")
+
+  @@map("juego_suscripcion")
+}
+
+model jerarquia_suscripciones {
+  id_key_suscripcion Int                      @id @default(autoincrement()) @map("id_key_suscripcion")
+  id_padre           Int
+  id_hija            Int
+
+  padre              juego_suscripcion         @relation("jerarquia_padre", fields: [id_padre], references: [id_key_suscripcion])
+  hija               juego_suscripcion         @relation("jerarquia_hija", fields: [id_hija], references: [id_key_suscripcion])
+
+  @@map("jerarquia_suscripciones")
+}
+
+model regalo_evento {
+  id_regalo_evento    Int                    @id @default(autoincrement()) @map("id_regalo_evento")
+  id_juego            Int
+  cantidad            Int
+  cantidad_disponible Int
+
+  juego               juego                  @relation(fields: [id_juego], references: [id_juego])
+  evento              evento[]
+
+  @@map("regalo_evento")
+}
