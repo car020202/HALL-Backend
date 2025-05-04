@@ -34,7 +34,7 @@ export class AuthService {
         email,
         contraseña: hashedPassword,
         rol: {
-          connect: { id_rol: 2 }, // Cambiado a 2 para usuarios normales
+          connect: { id_rol: 2 }, //2 para usuarios normales
         },
       },
     });
