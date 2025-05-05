@@ -2,8 +2,9 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from './jwt.strategy'; // Importa la estrategia JWT
 import { PrismaService } from '../../prisma/prisma.service';
-import { MailModule } from '../mail/mail.module'; // Importamos el MailModule
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -11,9 +12,9 @@ import { MailModule } from '../mail/mail.module'; // Importamos el MailModule
       secret: 'SECRET_KEY', // Cambia esto por una clave secreta segura
       signOptions: { expiresIn: '1h' },
     }),
-    MailModule, // Asegúrate de importar el MailModule aquí
+    MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService],
+  providers: [AuthService, PrismaService, JwtStrategy], // Agrega JwtStrategy aquí
 })
 export class AuthModule {}

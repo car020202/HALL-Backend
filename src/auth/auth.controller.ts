@@ -1,4 +1,14 @@
-import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -64,5 +74,11 @@ export class AuthController {
     }
 
     return this.authService.updateUserName(userId, nombre, contraseña);
+  }
+
+  @UseGuards(AuthGuard('jwt')) // Protege el endpoint con JWT
+  @Get('profile')
+  async getProfile(@Req() req) {
+    return req.user; // Devuelve la información del usuario autenticado
   }
 }
