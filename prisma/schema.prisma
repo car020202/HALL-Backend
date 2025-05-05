@@ -16,12 +16,13 @@ generator client {
 // -------------------------------------------
 
 model usuario {
-  id_usuario    Int             @id @default(autoincrement()) @map("id_usuario")
-  nombre        String
-  email         String          @unique
-  contraseña    String          @map("contraseña")
-  id_rol        Int
-  rol           rol             @relation("usuario_to_rol", fields: [id_rol], references: [id_rol])
+  id_usuario         Int     @id @default(autoincrement()) @map("id_usuario")
+  nombre             String
+  email              String  @unique
+  contraseña         String  @map("contraseña")
+  id_rol             Int
+  rol                rol     @relation("usuario_to_rol", fields: [id_rol], references: [id_rol])
+  codigo_verificacion String? // Campo opcional para guardar el código de verificación
 
   biblioteca    biblioteca[]    @relation("usuario_to_biblioteca")
   amistadA      amistad[]       @relation("amistad_usuario_a")
