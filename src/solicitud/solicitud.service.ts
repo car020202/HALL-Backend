@@ -22,27 +22,29 @@ export class SolicitudService {
   }
 
   async createSolicitud(id_solicitante: number, id_receptor: number) {
-    const pendId = await this._getEstadoId('pendiente');
-    const acepId = await this._getEstadoId('aceptada');
-
-    const existing = await this.prisma.solicitud.findFirst({
+    // Solo impide crear si la solicitud previa está pendiente o aceptada.
+    const existente = await this.prisma.solicitud.findFirst({
       where: {
-        id_solicitante,
-        id_receptor,
-        OR: [{ id_estado: pendId }, { id_estado: acepId }],
+        OR: [
+          { id_solicitante, id_receptor },
+          { id_solicitante: id_receptor, id_receptor: id_solicitante },
+        ],
+        id_estado: { in: [1, 2] }, // 1: Pendiente, 2: Aceptada
       },
     });
-    if (existing) {
+
+    if (existente) {
       throw new BadRequestException(
-        'Ya existe una solicitud o amistad entre estos usuarios.',
+        'Ya existe una solicitud pendiente o son amigos.',
       );
     }
 
+    // Si no hay solicitudes pendientes o aceptadas, crea una nueva
     return this.prisma.solicitud.create({
       data: {
         id_solicitante,
         id_receptor,
-        id_estado: pendId,
+        id_estado: 1, // Pendiente
         fecha_solicitud: new Date(),
         fecha_confirmacion: new Date(),
       },
