@@ -50,7 +50,7 @@ async function main() {
 
   // 6) Roles por defecto
   await prisma.rol.createMany({
-    data: [{ nombre: 'Usuario' }, { nombre: 'Administrador' }],
+    data: [{ nombre: 'Administrador' }, { nombre: 'Usuario' }],
     skipDuplicates: true,
   });
 }
