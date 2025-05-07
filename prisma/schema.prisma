@@ -45,13 +45,14 @@ model rol {
 }
 
 model amistad {
-  id_amistad   Int      @id @default(autoincrement()) @map("id_amistad")
+  id_amistad   Int  @id @default(autoincrement()) @map("id_amistad")
   id_usuario_a Int
   id_usuario_b Int
 
-  usuarioA     usuario  @relation("amistad_usuario_a", fields: [id_usuario_a], references: [id_usuario])
-  usuarioB     usuario  @relation("amistad_usuario_b", fields: [id_usuario_b], references: [id_usuario])
+  usuarioA     usuario @relation("amistad_usuario_a", fields: [id_usuario_a], references: [id_usuario])
+  usuarioB     usuario @relation("amistad_usuario_b", fields: [id_usuario_b], references: [id_usuario])
 
+  @@unique([id_usuario_a, id_usuario_b], map: "unique_amistad")
   @@map("amistad")
 }
 
