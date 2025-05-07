@@ -7,6 +7,8 @@ import { MailModule } from './mail/mail.module';
 import { AmistadModule } from './amistad/amistad.module';
 import { CategoriaJuegoModule } from './categoria-juego/categoria-juego.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
+import { EstadoSolicitudModule } from './estado-solicitud/estado-solicitud.module';
+import { SolicitudModule } from './solicitud/solicitud.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { ProveedoresModule } from './proveedores/proveedores.module';
     AmistadModule,
     CategoriaJuegoModule,
     ProveedoresModule,
+    EstadoSolicitudModule,
+    SolicitudModule,
   ],
   controllers: [AppController],
   providers: [AppService],
