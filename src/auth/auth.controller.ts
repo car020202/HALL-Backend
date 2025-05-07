@@ -15,6 +15,14 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('recomendados')
+  async getRecomendados(@Req() req) {
+    // req.user debe venir con el payload de tu JWT (incluye el id_usuario)
+    const userId = req.user.id_usuario;
+    return this.authService.getRecomendados(userId);
+  }
+
   @Post('register')
   async register(
     @Body('nombre') nombre: string,

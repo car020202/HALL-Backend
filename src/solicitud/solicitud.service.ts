@@ -50,12 +50,13 @@ export class SolicitudService {
   }
 
   async getSolicitudesRecibidas(id_receptor: number) {
+    const pendId = await this._getEstadoId('pendiente');
     return this.prisma.solicitud.findMany({
-      where: { id_receptor },
-      include: {
-        solicitante: true,
-        estado_solicitud: true,
+      where: {
+        id_receptor,
+        id_estado: pendId, // solo pendientes
       },
+      include: { solicitante: true, estado_solicitud: true },
     });
   }
 

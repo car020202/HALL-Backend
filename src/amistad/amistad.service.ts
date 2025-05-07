@@ -39,6 +39,7 @@ export class AmistadService {
   }
 
   async deleteAmistad(id_usuario_a: number, id_usuario_b: number) {
+    // 1) Eliminar la amistad
     const deleted = await this.prisma.amistad.deleteMany({
       where: {
         OR: [
@@ -52,6 +53,23 @@ export class AmistadService {
       throw new BadRequestException(
         'No existe amistad entre estos usuarios para eliminar.',
       );
+    }
+
+    // 2) Borrar también cualquier solicitud ACEPTADA entre ellos
+    //    (para que puedan volver a enviarse nuevas solicitudes)
+    const estadoAceptada = await this.prisma.estado_solicitud.findFirst({
+      where: { nombre: 'aceptada' },
+    });
+    if (estadoAceptada) {
+      await this.prisma.solicitud.deleteMany({
+        where: {
+          id_estado: estadoAceptada.id_estado_solicitud,
+          OR: [
+            { id_solicitante: id_usuario_a, id_receptor: id_usuario_b },
+            { id_solicitante: id_usuario_b, id_receptor: id_usuario_a },
+          ],
+        },
+      });
     }
 
     return { message: 'Amistad eliminada exitosamente' };

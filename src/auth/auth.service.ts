@@ -13,6 +13,22 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
+  async getRecomendados(userId: number) {
+    // Si quieres aplicar más filtros (rol, actividad, etc.) hazlos aquí
+    return this.prisma.usuario.findMany({
+      where: {
+        id_usuario: { not: userId },
+      },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        email: true,
+        rol: {
+          select: { id_rol: true, nombre: true },
+        },
+      },
+    });
+  }
   async login(email: string, contraseña: string) {
     const user = await this.prisma.usuario.findUnique({
       where: { email },
