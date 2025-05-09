@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config'; // <-- Importa ConfigModule
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -14,6 +16,10 @@ import { KeyModule } from './key/key.module';
 
 @Module({
   imports: [
+    // 1) Carga todas las vars de .env en process.env y las hace accesibles globalmente
+    ConfigModule.forRoot({ isGlobal: true }),
+
+    // 2) Tus módulos existentes
     AuthModule,
     RolModule,
     MailModule,
