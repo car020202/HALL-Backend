@@ -28,13 +28,13 @@ export class JuegoController {
     return this.juegoService.create(data);
   }
 
-  // GET /juego            → solo datos DB
+  // GET /juego            - solo datos DB
   @Get()
   getAll() {
     return this.juegoService.findAll();
   }
 
-  // GET /juego/con-portadas → datos DB + portada
+  // GET /juego/con-portadas - datos DB + portada
   @Get('con-portadas')
   getAllWithPortadas() {
     return this.juegoService.findAllWithPortadas();

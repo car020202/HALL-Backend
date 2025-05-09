@@ -9,12 +9,12 @@ import { MailModule } from '../mail/mail.module';
 @Module({
   imports: [
     JwtModule.register({
-      secret: 'SECRET_KEY', // Cambia esto por una clave secreta segura
+      secret: 'SECRET_KEY',
       signOptions: { expiresIn: '1h' },
     }),
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, JwtStrategy], // Agrega JwtStrategy aquí
+  providers: [AuthService, PrismaService, JwtStrategy],
 })
 export class AuthModule {}

@@ -6,7 +6,7 @@ import { RawgService } from './rawg.service';
 export class JuegoService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly rawgService: RawgService, // ← inyectamos RawgService
+    private readonly rawgService: RawgService, //inyectamos RawgService
   ) {}
 
   async create(data: {

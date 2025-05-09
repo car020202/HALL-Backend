@@ -13,7 +13,7 @@ import { RawgController } from './rawg.controller';
 @Module({
   imports: [
     HttpModule, // para peticiones a RAWG
-    ConfigModule, // si no tienes ConfigModule global en AppModule
+    ConfigModule, //ConfigModule global
   ],
   providers: [
     JuegoService,

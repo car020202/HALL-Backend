@@ -5,7 +5,7 @@ import { RawgService } from './rawg.service';
 export class RawgController {
   constructor(private readonly rawg: RawgService) {}
 
-  // GET /juegos?search=zelda&page=1&pageSize=20
+  // GET
   @Get()
   async search(
     @Query('search') search: string,
