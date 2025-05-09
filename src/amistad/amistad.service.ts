@@ -6,10 +6,26 @@ export class AmistadService {
   constructor(private prisma: PrismaService) {}
 
   async getAmistades(id_usuario: number) {
-    return this.prisma.amistad.findMany({
+    // traigo los pares de amistad junto con los datos de usuario A y B
+    const relaciones = await this.prisma.amistad.findMany({
       where: {
         OR: [{ id_usuario_a: id_usuario }, { id_usuario_b: id_usuario }],
       },
+      include: {
+        usuarioA: { select: { id_usuario: true, nombre: true, email: true } },
+        usuarioB: { select: { id_usuario: true, nombre: true, email: true } },
+      },
+    });
+
+    // mapeo para quedarme solo con el “otro” usuario en cada relación
+    return relaciones.map((rel) => {
+      const esUsuarioA = rel.id_usuario_a === id_usuario;
+      const amigo = esUsuarioA ? rel.usuarioB : rel.usuarioA;
+      return {
+        id_usuario: amigo.id_usuario,
+        nombre: amigo.nombre,
+        email: amigo.email,
+      };
     });
   }
 
