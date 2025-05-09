@@ -14,10 +14,23 @@ export class AuthService {
   ) {}
 
   async getRecomendados(userId: number) {
-    // Si quieres aplicar más filtros (rol, actividad, etc.) hazlos aquí
+    // 1) Primero obtén una lista de IDs de amigos del usuario actual
+    const amistades = await this.prisma.amistad.findMany({
+      where: {
+        OR: [{ id_usuario_a: userId }, { id_usuario_b: userId }],
+      },
+    });
+
+    const idsAmigos = amistades
+      .flatMap((a) => [a.id_usuario_a, a.id_usuario_b])
+      .filter((id) => id !== userId);
+
+    // 2) Usa esos IDs para excluir amigos actuales de la recomendación
     return this.prisma.usuario.findMany({
       where: {
-        id_usuario: { not: userId },
+        id_usuario: {
+          notIn: [userId, ...idsAmigos],
+        },
       },
       select: {
         id_usuario: true,
@@ -29,6 +42,7 @@ export class AuthService {
       },
     });
   }
+
   async login(email: string, contraseña: string) {
     const user = await this.prisma.usuario.findUnique({
       where: { email },
