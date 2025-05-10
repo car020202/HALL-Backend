@@ -20,12 +20,14 @@ export class KeyController {
     @Body('key') key: string,
     @Body('id_estado_key') id_estado_key: number,
     @Body('id_proveedor') id_proveedor: number,
+    @Body('precio') precio: number,
   ) {
     return this.keyService.create({
       id_juego,
       key,
       id_estado_key,
       id_proveedor,
+      precio,
     });
   }
 
@@ -54,6 +56,6 @@ export class KeyController {
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.keyService.remove(id);
+    return this.keyService.delete(id);
   }
 }

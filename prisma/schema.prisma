@@ -124,6 +124,7 @@ model key {
   key           String
   id_estado_key Int
   id_proveedor  Int
+  precio Decimal @db.Decimal(10, 2)
 
   juego               juego               @relation(fields: [id_juego], references: [id_juego])
   estado_key          estado_key          @relation(fields: [id_estado_key], references: [id_estado_key])

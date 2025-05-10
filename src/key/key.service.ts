@@ -10,27 +10,27 @@ export class KeyService {
     key: string;
     id_estado_key: number;
     id_proveedor: number;
+    precio: number;
   }) {
     // Crear la nueva key
     const nuevaKey = await this.prisma.key.create({ data });
 
-    // Recontar la cantidad total de keys para ese juego
+    // Contar todas las keys del juego
     const total = await this.prisma.key.count({
       where: { id_juego: data.id_juego },
     });
 
-    // Recontar la cantidad de keys disponibles
+    // Contar solo las keys disponibles del juego
     const disponibles = await this.prisma.key.count({
       where: {
         id_juego: data.id_juego,
-        id_estado_key: data.id_estado_key,
         estado_key: {
           nombre: { equals: 'disponible', mode: 'insensitive' },
         },
       },
     });
 
-    // Actualizar los campos en la tabla juego
+    // Actualizar el juego con los nuevos conteos
     await this.prisma.juego.update({
       where: { id_juego: data.id_juego },
       data: {
@@ -81,8 +81,47 @@ export class KeyService {
     });
   }
 
-  async remove(id_key: number) {
-    await this.findOne(id_key);
-    return this.prisma.key.delete({ where: { id_key } });
+  async delete(id_key: number) {
+    const key = await this.prisma.key.findUnique({
+      where: { id_key },
+      select: {
+        id_key: true,
+        id_juego: true,
+      },
+    });
+
+    if (!key) {
+      throw new NotFoundException('Key no encontrada.');
+    }
+
+    // Eliminar la key
+    await this.prisma.key.delete({
+      where: { id_key },
+    });
+
+    // Recontar después de eliminar
+    const total = await this.prisma.key.count({
+      where: { id_juego: key.id_juego },
+    });
+
+    const disponibles = await this.prisma.key.count({
+      where: {
+        id_juego: key.id_juego,
+        estado_key: {
+          nombre: { equals: 'disponible', mode: 'insensitive' },
+        },
+      },
+    });
+
+    // Actualizar juego
+    await this.prisma.juego.update({
+      where: { id_juego: key.id_juego },
+      data: {
+        cantidad: total,
+        cantidad_disponible: disponibles,
+      },
+    });
+
+    return { message: 'Key eliminada y juego actualizado correctamente' };
   }
 }

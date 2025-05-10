@@ -24,30 +24,46 @@ export class JuegoService {
     return this.prisma.juego.findMany();
   }
 
-  /** DB + portada desde RAWG */
+  /** DB + portada desde RAWG + precio mínimo */
   async findAllWithPortadas() {
-    // Incluimos la categoría en la misma consulta a la BD
     const juegos = await this.prisma.juego.findMany({
-      include: { categoria: true },
+      include: {
+        categoria: true,
+        key: {
+          where: {
+            estado_key: {
+              nombre: 'disponible', // solo claves disponibles
+            },
+          },
+          select: {
+            precio: true,
+          },
+        },
+      },
     });
 
-    const juegosConPortada = await Promise.all(
+    const juegosConExtras = await Promise.all(
       juegos.map(async (juego) => {
         const { results } = await this.rawgService.searchGames(
           juego.titulo,
           1,
           1,
         );
+
         const portada = results?.[0]?.background_image ?? null;
+        const precios = juego.key.map((k) => Number(k.precio));
+        const precioMinimo = precios.length ? Math.min(...precios) : null;
+
         return {
           ...juego,
           portada,
           categoriaNombre: juego.categoria.nombre,
+          precio: precioMinimo,
         };
       }),
     );
 
-    return juegosConPortada;
+    return juegosConExtras;
   }
 
   async findOne(id_juego: number) {
