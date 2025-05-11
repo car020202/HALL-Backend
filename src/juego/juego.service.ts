@@ -76,7 +76,15 @@ export class JuegoService {
       throw new NotFoundException(`Juego con ID ${id_juego} no encontrado.`);
     }
 
-    return juego;
+    // Obtener la portada del juego desde RAWG
+    const { results } = await this.rawgService.searchGames(juego.titulo, 1, 1);
+    const portada = results?.[0]?.background_image ?? null;
+
+    // Agregar la portada al objeto juego
+    return {
+      ...juego,
+      portada,
+    };
   }
 
   async update(
