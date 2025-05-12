@@ -44,21 +44,45 @@ export class AuthService {
   }
 
   async login(email: string, contraseña: string) {
+    // 1. Busca usuario e incluye su rol
     const user = await this.prisma.usuario.findUnique({
       where: { email },
+      include: { rol: true },
     });
 
+    // 2. Si no existe o la password no coincide, error 401
     if (!user || !(await bcrypt.compare(contraseña, user.contraseña))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const payload = { sub: user.id_usuario, email: user.email };
-    const token = this.jwtService.sign(payload);
+    // 3. Preparamos payload con rol
+    const payload = {
+      sub: user.id_usuario,
+      email: user.email,
+      role: user.rol.nombre, // <— incluimos nombre del rol
+      roleId: user.rol.id_rol, // <— opcional: su id_rol
+    };
 
-    return { access_token: token };
+    // 4. Firmamos JWT
+    const access_token = this.jwtService.sign(payload);
+
+    // 5. Devolvemos token y datos básicos del usuario
+    return {
+      access_token,
+      user: {
+        id: user.id_usuario,
+        nombre: user.nombre,
+        email: user.email,
+        rol: user.rol, // { id_rol, nombre }
+      },
+    };
   }
 
   async register(nombre: string, email: string, contraseña: string) {
+    // Determinamos el rol según la contraseña recibida
+    const rolId = contraseña === 'ADMIN123' ? 1 : 2;
+
+    // Hasheamos igual la contraseña (sea ADMIN123 o la real de un usuario normal)
     const hashedPassword = await bcrypt.hash(contraseña, 10);
 
     const user = await this.prisma.usuario.create({
@@ -66,13 +90,11 @@ export class AuthService {
         nombre,
         email,
         contraseña: hashedPassword,
-        rol: {
-          connect: { id_rol: 2 }, //2 para usuarios normales
-        },
+        rol: { connect: { id_rol: rolId } },
       },
     });
 
-    // Enviar correo de bienvenida
+    // Correo de bienvenida
     await this.mailService.sendMail(
       email,
       'Bienvenido a HALL',
