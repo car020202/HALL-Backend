@@ -31,6 +31,7 @@ export class AuthService {
         id_usuario: {
           notIn: [userId, ...idsAmigos],
         },
+        id_rol: 2, // Solo usuarios normales
       },
       select: {
         id_usuario: true,
