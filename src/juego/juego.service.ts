@@ -67,23 +67,37 @@ export class JuegoService {
   }
 
   async findOne(id_juego: number) {
+    // 1. Buscamos el juego, su categoría y las keys disponibles (solo precio)
     const juego = await this.prisma.juego.findUnique({
       where: { id_juego },
-      include: { categoria: true },
+      include: {
+        categoria: true,
+        key: {
+          where: {
+            estado_key: { nombre: 'disponible' },
+          },
+          select: { precio: true },
+        },
+      },
     });
 
     if (!juego) {
       throw new NotFoundException(`Juego con ID ${id_juego} no encontrado.`);
     }
 
-    // Obtener la portada del juego desde RAWG
+    // 2. Recuperamos la portada desde RAWG
     const { results } = await this.rawgService.searchGames(juego.titulo, 1, 1);
     const portada = results?.[0]?.background_image ?? null;
 
-    // Agregar la portada al objeto juego
+    // 3. Calculamos el precio mínimo de entre las keys disponibles
+    const precios = juego.key.map((k) => Number(k.precio));
+    const precioMinimo = precios.length ? Math.min(...precios) : null;
+
+    // 4. Devolvemos todo junto, inyectando portada y precio
     return {
       ...juego,
       portada,
+      precio: precioMinimo,
     };
   }
 
