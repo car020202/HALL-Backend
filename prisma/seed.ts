@@ -8,6 +8,7 @@ async function main() {
       { nombre: 'disponible' },
       { nombre: 'vendida' },
       { nombre: 'reservada' },
+      { nombre: 'deshabilitada' },
     ],
     skipDuplicates: true,
   });

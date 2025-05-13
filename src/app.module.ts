@@ -16,6 +16,7 @@ import { KeyModule } from './key/key.module';
 import { PlataformaModule } from './plataforma/plataforma.module';
 import { BibliotecaDetalleModule } from './biblioteca-detalle/biblioteca-detalle.module';
 import { BibliotecaModule } from './biblioteca/biblioteca.module';
+import { TransaccionModule } from './transaccion/transaccion.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { BibliotecaModule } from './biblioteca/biblioteca.module';
     PlataformaModule,
     BibliotecaDetalleModule,
     BibliotecaModule,
+    TransaccionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
