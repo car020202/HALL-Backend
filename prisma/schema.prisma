@@ -46,20 +46,24 @@ model amistad {
 }
 
 model biblioteca {
-  id_biblioteca         Int                @id @default(autoincrement()) @map("id_biblioteca")
-  id_usuario            Int
-  id_biblioteca_detalle Int
-  detalle               biblioteca_detalle @relation(fields: [id_biblioteca_detalle], references: [id_biblioteca_detalle])
-  usuario               usuario            @relation("usuario_to_biblioteca", fields: [id_usuario], references: [id_usuario])
+  id_biblioteca        Int                   @id @default(autoincrement()) @map("id_biblioteca")
+  id_usuario           Int
+  usuario              usuario               @relation("usuario_to_biblioteca", fields: [id_usuario], references: [id_usuario])
+
+  // Uno-a-muchos: UNA biblioteca puede tener MUCHOS detalles
+  biblioteca_detalle   biblioteca_detalle[]  @relation("BibliotecaToDetalle")
 
   @@map("biblioteca")
 }
 
 model biblioteca_detalle {
-  id_biblioteca_detalle Int          @id @default(autoincrement()) @map("id_biblioteca_detalle")
-  id_key                Int
-  biblioteca            biblioteca[]
-  key                   key          @relation(fields: [id_key], references: [id_key])
+  id_biblioteca_detalle Int                  @id @default(autoincrement()) @map("id_biblioteca_detalle")
+  id_biblioteca        Int
+  id_key               Int
+
+  // apunta al padre
+  biblioteca           biblioteca            @relation("BibliotecaToDetalle", fields: [id_biblioteca], references: [id_biblioteca])
+  key                   key                  @relation(fields: [id_key],       references: [id_key])
 
   @@map("biblioteca_detalle")
 }

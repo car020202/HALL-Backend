@@ -14,6 +14,8 @@ import { SolicitudModule } from './solicitud/solicitud.module';
 import { JuegoModule } from './juego/juego.module';
 import { KeyModule } from './key/key.module';
 import { PlataformaModule } from './plataforma/plataforma.module';
+import { BibliotecaDetalleModule } from './biblioteca-detalle/biblioteca-detalle.module';
+import { BibliotecaModule } from './biblioteca/biblioteca.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { PlataformaModule } from './plataforma/plataforma.module';
     JuegoModule,
     KeyModule,
     PlataformaModule,
+    BibliotecaDetalleModule,
+    BibliotecaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
