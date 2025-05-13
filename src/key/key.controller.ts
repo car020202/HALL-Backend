@@ -14,12 +14,23 @@ import { KeyService } from './key.service';
 export class KeyController {
   constructor(private readonly keyService: KeyService) {}
 
+  @Get('platforms/counts')
+  countAllByPlatform() {
+    return this.keyService.countAllByPlatform();
+  }
+
+  @Get('platform/:id')
+  findByPlatform(@Param('id', ParseIntPipe) id_plataforma: number) {
+    return this.keyService.findByPlatform(id_plataforma);
+  }
+
   @Post()
   create(
     @Body('id_juego') id_juego: number,
     @Body('key') key: string,
     @Body('id_estado_key') id_estado_key: number,
     @Body('id_proveedor') id_proveedor: number,
+    @Body('id_plataforma') id_plataforma: number,
     @Body('precio') precio: number,
   ) {
     return this.keyService.create({
@@ -27,6 +38,7 @@ export class KeyController {
       key,
       id_estado_key,
       id_proveedor,
+      id_plataforma,
       precio,
     });
   }
@@ -49,6 +61,7 @@ export class KeyController {
       key?: string;
       id_estado_key?: number;
       id_proveedor?: number;
+      id_plataforma?: number;
     },
   ) {
     return this.keyService.update(id, data);

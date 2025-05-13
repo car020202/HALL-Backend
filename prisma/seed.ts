@@ -53,6 +53,17 @@ async function main() {
     data: [{ nombre: 'Administrador' }, { nombre: 'Usuario' }],
     skipDuplicates: true,
   });
+
+  // 7) Plataformas por defecto
+  await prisma.plataforma.createMany({
+    data: [
+      { nombre: 'PlayStation' },
+      { nombre: 'Xbox' },
+      { nombre: 'Nintendo' },
+      { nombre: 'PC' },
+    ],
+    skipDuplicates: true,
+  });
 }
 
 main()

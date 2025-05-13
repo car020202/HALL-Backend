@@ -5,14 +5,41 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class KeyService {
   constructor(private prisma: PrismaService) {}
 
+  async countAllByPlatform() {
+    return this.prisma.key
+      .groupBy({
+        by: ['id_plataforma'],
+        _count: { id_key: true },
+      })
+      .then((groups) =>
+        groups.map((g) => ({
+          id_plataforma: g.id_plataforma,
+          count: g._count.id_key,
+        })),
+      );
+  }
+
+  async findByPlatform(id_plataforma: number) {
+    return this.prisma.key.findMany({
+      where: { id_plataforma },
+      include: {
+        juego: true,
+        estado_key: true,
+        proveedor: true,
+        plataforma: true,
+      },
+    });
+  }
+
   async create(data: {
     id_juego: number;
     key: string;
     id_estado_key: number;
     id_proveedor: number;
+    id_plataforma: number;
     precio: number;
   }) {
-    // Crear la nueva key
+    // Crear la nueva key incluyendo plataforma
     const nuevaKey = await this.prisma.key.create({ data });
 
     // Contar todas las keys del juego
@@ -48,6 +75,7 @@ export class KeyService {
         juego: true,
         estado_key: true,
         proveedor: true,
+        plataforma: true, // incluir también la plataforma
       },
     });
   }
@@ -59,6 +87,7 @@ export class KeyService {
         juego: true,
         estado_key: true,
         proveedor: true,
+        plataforma: true,
       },
     });
 
@@ -72,6 +101,7 @@ export class KeyService {
       key?: string;
       id_estado_key?: number;
       id_proveedor?: number;
+      id_plataforma?: number;
     },
   ) {
     await this.findOne(id_key);

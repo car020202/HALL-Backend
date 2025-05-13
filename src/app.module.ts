@@ -13,6 +13,7 @@ import { EstadoSolicitudModule } from './estado-solicitud/estado-solicitud.modul
 import { SolicitudModule } from './solicitud/solicitud.module';
 import { JuegoModule } from './juego/juego.module';
 import { KeyModule } from './key/key.module';
+import { PlataformaModule } from './plataforma/plataforma.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { KeyModule } from './key/key.module';
     SolicitudModule,
     JuegoModule,
     KeyModule,
+    PlataformaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
