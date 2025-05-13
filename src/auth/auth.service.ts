@@ -95,6 +95,13 @@ export class AuthService {
       },
     });
 
+    // Crea la biblioteca asociada al usuario
+    await this.prisma.biblioteca.create({
+      data: {
+        id_usuario: user.id_usuario,
+      },
+    });
+
     // Correo de bienvenida
     await this.mailService.sendMail(
       email,
