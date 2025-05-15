@@ -1,3 +1,5 @@
+// src/key/key.controller.ts
+
 import {
   Controller,
   Get,
@@ -26,20 +28,22 @@ export class KeyController {
 
   @Post()
   create(
-    @Body('id_juego') id_juego: number,
-    @Body('key') key: string,
-    @Body('id_estado_key') id_estado_key: number,
-    @Body('id_proveedor') id_proveedor: number,
-    @Body('id_plataforma') id_plataforma: number,
-    @Body('precio') precio: number,
+    @Body('id_juego', ParseIntPipe) id_juego: number,
+    @Body('key') keyStr: string,
+    @Body('id_estado_key', ParseIntPipe) id_estado_key: number,
+    @Body('id_proveedor', ParseIntPipe) id_proveedor: number,
+    @Body('id_plataforma', ParseIntPipe) id_plataforma: number,
+    @Body('precioCompra') precioCompra: number,
+    @Body('precioVenta') precioVenta: number,
   ) {
     return this.keyService.create({
       id_juego,
-      key,
+      key: keyStr,
       id_estado_key,
       id_proveedor,
       id_plataforma,
-      precio,
+      precioCompra,
+      precioVenta,
     });
   }
 
@@ -62,6 +66,8 @@ export class KeyController {
       id_estado_key?: number;
       id_proveedor?: number;
       id_plataforma?: number;
+      precioCompra?: number;
+      precioVenta?: number;
     },
   ) {
     return this.keyService.update(id, data);

@@ -6,9 +6,10 @@ import { RawgService } from './rawg.service';
 export class JuegoService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly rawgService: RawgService, //inyectamos RawgService
+    private readonly rawgService: RawgService,
   ) {}
 
+  /** Crear un juego nuevo en BD */
   async create(data: {
     titulo: string;
     descripcion: string;
@@ -19,46 +20,44 @@ export class JuegoService {
     return this.prisma.juego.create({ data });
   }
 
-  /** Solo DB */
+  /** Solo BD: listar todos los juegos sin extras */
   async findAll() {
     return this.prisma.juego.findMany();
   }
 
-  /** DB + portada desde RAWG + precio mínimo */
+  /** BD + portada RAWG + precio mínimo de venta */
   async findAllWithPortadas() {
+    // 1) Traer juegos con categoría y solo las keys disponibles (precio_venta)
     const juegos = await this.prisma.juego.findMany({
       include: {
         categoria: true,
         key: {
           where: {
-            estado_key: {
-              nombre: 'disponible', // solo claves disponibles
-            },
+            estado_key: { nombre: 'disponible' },
           },
           select: {
-            precio: true,
+            precio_venta: true,
           },
         },
       },
     });
 
+    // 2) Para cada juego, buscar portada y calcular precio mínimo
     const juegosConExtras = await Promise.all(
-      juegos.map(async (juego) => {
-        const { results } = await this.rawgService.searchGames(
-          juego.titulo,
-          1,
-          1,
-        );
-
+      juegos.map(async (j) => {
+        // RAWG: buscamos la portada
+        const { results } = await this.rawgService.searchGames(j.titulo, 1, 1);
         const portada = results?.[0]?.background_image ?? null;
-        const precios = juego.key.map((k) => Number(k.precio));
-        const precioMinimo = precios.length ? Math.min(...precios) : null;
+
+        // Calculamos precio mínimo de venta
+        const ventas = j.key.map((k) => Number(k.precio_venta));
+        const precioMin = ventas.length ? Math.min(...ventas) : null;
 
         return {
-          ...juego,
+          ...j,
           portada,
-          categoriaNombre: juego.categoria.nombre,
-          precio: precioMinimo,
+          categoriaNombre: j.categoria.nombre,
+          precio: precioMin,
         };
       }),
     );
@@ -66,8 +65,9 @@ export class JuegoService {
     return juegosConExtras;
   }
 
+  /** BD + portada RAWG + precio mínimo de venta para un solo juego */
   async findOne(id_juego: number) {
-    // 1. Buscamos el juego, su categoría y las keys disponibles (solo precio)
+    // 1) Buscamos en BD
     const juego = await this.prisma.juego.findUnique({
       where: { id_juego },
       include: {
@@ -76,31 +76,32 @@ export class JuegoService {
           where: {
             estado_key: { nombre: 'disponible' },
           },
-          select: { precio: true },
+          select: { precio_venta: true },
         },
       },
     });
-
     if (!juego) {
       throw new NotFoundException(`Juego con ID ${id_juego} no encontrado.`);
     }
 
-    // 2. Recuperamos la portada desde RAWG
+    // 2) RAWG: portada
     const { results } = await this.rawgService.searchGames(juego.titulo, 1, 1);
     const portada = results?.[0]?.background_image ?? null;
 
-    // 3. Calculamos el precio mínimo de entre las keys disponibles
-    const precios = juego.key.map((k) => Number(k.precio));
-    const precioMinimo = precios.length ? Math.min(...precios) : null;
+    // 3) Precio mínimo
+    const ventas = juego.key.map((k) => Number(k.precio_venta));
+    const precioMin = ventas.length ? Math.min(...ventas) : null;
 
-    // 4. Devolvemos todo junto, inyectando portada y precio
+    // 4) Devolver todo junto
     return {
       ...juego,
       portada,
-      precio: precioMinimo,
+      precio: precioMin,
+      categoriaNombre: juego.categoria.nombre,
     };
   }
 
+  /** Actualizar un juego */
   async update(
     id_juego: number,
     data: {
@@ -111,11 +112,17 @@ export class JuegoService {
       cantidad_disponible?: number;
     },
   ) {
+    // valida existencia
     await this.findOne(id_juego);
-    return this.prisma.juego.update({ where: { id_juego }, data });
+    return this.prisma.juego.update({
+      where: { id_juego },
+      data,
+    });
   }
 
+  /** Borrar un juego */
   async remove(id_juego: number) {
+    // valida existencia
     await this.findOne(id_juego);
     return this.prisma.juego.delete({ where: { id_juego } });
   }

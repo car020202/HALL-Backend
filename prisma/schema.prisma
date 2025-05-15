@@ -109,10 +109,11 @@ model juego {
 model key {
   id_key             Int                  @id @default(autoincrement()) @map("id_key")
   id_juego           Int
-  key                String
+  key                String               @unique
   id_estado_key      Int
   id_proveedor       Int
-  precio             Decimal              @db.Decimal(10, 2)
+  precio_compra      Decimal              @db.Decimal(10, 2)
+  precio_venta       Decimal              @db.Decimal(10, 2)
   id_plataforma      Int
   biblioteca_detalle biblioteca_detalle[]
   estado_key         estado_key           @relation(fields: [id_estado_key], references: [id_estado_key])
