@@ -194,4 +194,40 @@ export class KeyService {
 
     return { message: 'Key eliminada y juego actualizado correctamente' };
   }
+
+  /** Buscar keys por rango de precio */
+  async findByPrecio(precio: number) {
+    return this.prisma.key.findMany({
+      where: {
+        precio_venta: {
+          gte: precio, // mayor o igual al precio dado
+        },
+      },
+      include: {
+        juego: true,
+        estado_key: true,
+        proveedor: true,
+        plataforma: true,
+      },
+    });
+  }
+
+  /** Conteo de keys por juego */
+  async countKeysByJuego() {
+    const counts = await this.prisma.key.groupBy({
+      by: ['id_juego'],
+      _count: { id_key: true },
+    });
+
+    // Opcional: incluir el título del juego
+    const juegos = await this.prisma.juego.findMany({
+      select: { id_juego: true, titulo: true },
+    });
+
+    return counts.map((c) => ({
+      id_juego: c.id_juego,
+      titulo: juegos.find((j) => j.id_juego === c.id_juego)?.titulo ?? null,
+      cantidad: c._count.id_key,
+    }));
+  }
 }

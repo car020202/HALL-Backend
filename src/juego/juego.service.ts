@@ -22,7 +22,16 @@ export class JuegoService {
 
   /** Solo BD: listar todos los juegos sin extras */
   async findAll() {
-    return this.prisma.juego.findMany();
+    return this.prisma.juego.findMany({
+      include: {
+        categoria: true,
+        key: {
+          include: {
+            plataforma: true, // Incluye la plataforma de cada key
+          },
+        },
+      },
+    });
   }
 
   /** BD + portada RAWG + precio mínimo de venta */
@@ -76,7 +85,10 @@ export class JuegoService {
           where: {
             estado_key: { nombre: 'disponible' },
           },
-          select: { precio_venta: true },
+          select: {
+            precio_venta: true,
+            plataforma: true, // <-- Incluye la plataforma de cada key
+          },
         },
       },
     });
@@ -98,6 +110,13 @@ export class JuegoService {
       portada,
       precio: precioMin,
       categoriaNombre: juego.categoria.nombre,
+      plataformas: [
+        ...new Map(
+          juego.key
+            .filter((k) => k.plataforma)
+            .map((k) => [k.plataforma.id_plataforma, k.plataforma]),
+        ).values(),
+      ], // <-- plataformas únicas asociadas al juego
     };
   }
 

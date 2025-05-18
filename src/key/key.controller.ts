@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { KeyService } from './key.service';
 
@@ -17,6 +18,11 @@ export class KeyController {
   @Get('platforms/counts')
   countAllByPlatform() {
     return this.keyService.countAllByPlatform();
+  }
+
+  @Get('counts/juego')
+  countKeysByJuego() {
+    return this.keyService.countKeysByJuego();
   }
 
   @Get('platform/:id')
@@ -74,5 +80,10 @@ export class KeyController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.keyService.delete(id);
+  }
+
+  @Post('filtrar-precio')
+  findByPrecio(@Body('precio') precio: number) {
+    return this.keyService.findByPrecio(precio);
   }
 }
