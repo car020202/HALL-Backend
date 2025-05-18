@@ -1,5 +1,3 @@
-// src/key/key.controller.ts
-
 import {
   Controller,
   Get,
