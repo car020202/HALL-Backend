@@ -1,5 +1,3 @@
-// src/key/key.service.ts
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -219,7 +217,8 @@ export class KeyService {
       _count: { id_key: true },
     });
 
-    // Opcional: incluir el título del juego
+    // Obtener títulos de juegos
+    // para evitar hacer una consulta por cada juego
     const juegos = await this.prisma.juego.findMany({
       select: { id_juego: true, titulo: true },
     });

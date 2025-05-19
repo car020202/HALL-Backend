@@ -26,7 +26,7 @@ interface PurchaseParams {
 export class TransaccionService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // === Venta ===
+  // === Venta === (usuario)
   async processSale({ userId, keys, descripcion }: SaleParams) {
     // 1) Cargar las keys y sus precios de venta
     const keyRecords = await this.prisma.key.findMany({
@@ -101,7 +101,7 @@ export class TransaccionService {
     return { mensaje: 'Venta registrada', transaccion: trans };
   }
 
-  // === Compra ===
+  // === Compra === (admin)
   async processPurchase(params: PurchaseParams) {
     const {
       adminId,

@@ -116,7 +116,7 @@ export class JuegoService {
             .filter((k) => k.plataforma)
             .map((k) => [k.plataforma.id_plataforma, k.plataforma]),
         ).values(),
-      ], // <-- plataformas únicas asociadas al juego
+      ], // plataformas únicas asociadas al juego
     };
   }
 
