@@ -24,5 +24,6 @@ import { RawgController } from './rawg.controller';
     JuegoController,
     RawgController, // expone /juegos
   ],
+  exports: [RawgService], // <-- agrega esto
 })
 export class JuegoModule {}

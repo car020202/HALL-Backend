@@ -54,7 +54,17 @@ export class TransaccionService {
     if (!estadoVend || !estadoDisp)
       throw new NotFoundException('Faltan estados "vendida" o "disponible"');
 
-    // 4) Transacción atómica
+    // 1. Obtener o crear la biblioteca del usuario
+    let biblioteca = await this.prisma.biblioteca.findFirst({
+      where: { id_usuario: userId },
+    });
+    if (!biblioteca) {
+      biblioteca = await this.prisma.biblioteca.create({
+        data: { id_usuario: userId },
+      });
+    }
+
+    // 2. Transacción atómica
     const trans = await this.prisma.$transaction(async (tx) => {
       const t = await tx.transaccion.create({
         data: {
@@ -93,6 +103,14 @@ export class TransaccionService {
         await tx.juego.update({
           where: { id_juego: k.id_juego },
           data: { cantidad: total, cantidad_disponible: disponibles },
+        });
+
+        // Agregar la key a la biblioteca del usuario
+        await tx.biblioteca_detalle.create({
+          data: {
+            id_biblioteca: biblioteca.id_biblioteca,
+            id_key: k.id_key,
+          },
         });
       }
       return t;

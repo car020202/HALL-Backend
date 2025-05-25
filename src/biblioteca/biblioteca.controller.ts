@@ -9,10 +9,14 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { BibliotecaService } from './biblioteca.service';
+import { RawgService } from '../juego/rawg.service';
 
 @Controller('biblioteca')
 export class BibliotecaController {
-  constructor(private readonly bibliotecaService: BibliotecaService) {}
+  constructor(
+    private readonly bibliotecaService: BibliotecaService,
+    private readonly rawgService: RawgService,
+  ) {}
 
   @Post()
   create(@Body('id_usuario', ParseIntPipe) id_usuario: number) {
@@ -40,5 +44,13 @@ export class BibliotecaController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.bibliotecaService.remove(id);
+  }
+
+  // GET /biblioteca/usuario/:id_usuario
+  @Get('usuario/:id_usuario')
+  async getBibliotecaUsuario(
+    @Param('id_usuario', ParseIntPipe) id_usuario: number,
+  ) {
+    return this.bibliotecaService.getBibliotecaPorUsuario(id_usuario);
   }
 }
