@@ -53,4 +53,12 @@ export class BibliotecaController {
   ) {
     return this.bibliotecaService.getBibliotecaPorUsuario(id_usuario);
   }
+
+  @Post('devolver-key')
+  async devolverKey(
+    @Body('id_usuario', ParseIntPipe) id_usuario: number,
+    @Body('id_key', ParseIntPipe) id_key: number,
+  ) {
+    return this.bibliotecaService.devolverKey(id_usuario, id_key);
+  }
 }

@@ -171,6 +171,7 @@ model transaccion {
   id_tipo_transaccion Int
   monto               Decimal               @db.Decimal(10, 2)
   descripcion         String
+  fecha               DateTime              @default(now())
   detalle_transaccion detalle_transaccion[]
   tipo_transaccion    tipo_transaccion      @relation(fields: [id_tipo_transaccion], references: [id_tipo_transaccion])
   usuario             usuario               @relation("usuario_to_transaccion", fields: [id_usuario], references: [id_usuario])

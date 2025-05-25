@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RawgService } from '../juego/rawg.service'; // importa el servicio RAWG
 
@@ -130,5 +134,71 @@ export class BibliotecaService {
       });
     }
     return resultado;
+  }
+
+  /** Permite devolver una key si han pasado menos de 30 minutos desde la compra */
+  async devolverKey(id_usuario: number, id_key: number) {
+    // 1. Buscar la biblioteca del usuario
+    const biblioteca = await this.prisma.biblioteca.findFirst({
+      where: { id_usuario },
+    });
+    if (!biblioteca) throw new NotFoundException('Biblioteca no encontrada.');
+
+    // 2. Buscar el detalle de biblioteca para esa key
+    const detalle = await this.prisma.biblioteca_detalle.findFirst({
+      where: {
+        id_biblioteca: biblioteca.id_biblioteca,
+        id_key,
+      },
+    });
+    if (!detalle)
+      throw new NotFoundException('La key no está en tu biblioteca.');
+
+    // 3. Buscar la última transacción de venta de esa key para ese usuario
+    const transaccionKey = await this.prisma.transaccion_key.findFirst({
+      where: { id_key },
+      orderBy: { id_transaccion_key: 'desc' },
+      include: {
+        transaccion: true,
+      },
+    });
+    if (
+      !transaccionKey ||
+      transaccionKey.transaccion.id_usuario !== id_usuario ||
+      transaccionKey.transaccion.id_tipo_transaccion !== 2 // 2 = venta (ajusta si tu id es diferente)
+    ) {
+      throw new BadRequestException(
+        'No tienes permiso para devolver esta key.',
+      );
+    }
+
+    // 4. Verificar si han pasado menos de 30 minutos
+    const fechaCompra = new Date(transaccionKey.transaccion.fecha);
+    const ahora = new Date();
+    const minutos = (ahora.getTime() - fechaCompra.getTime()) / 60000;
+    if (minutos > 30) {
+      throw new BadRequestException(
+        'Solo puedes devolver la key dentro de los primeros 30 minutos.',
+      );
+    }
+
+    // 5. Eliminar la key de la biblioteca del usuario
+    await this.prisma.biblioteca_detalle.delete({
+      where: { id_biblioteca_detalle: detalle.id_biblioteca_detalle },
+    });
+
+    // 6. Cambiar el estado de la key a "deshabilitada"
+    const estadoDeshabilitada = await this.prisma.estado_key.findFirst({
+      where: { nombre: 'deshabilitada' },
+    });
+    if (!estadoDeshabilitada)
+      throw new NotFoundException('Estado "deshabilitada" no encontrado.');
+
+    await this.prisma.key.update({
+      where: { id_key },
+      data: { id_estado_key: estadoDeshabilitada.id_estado_key }, // Usa el campo correcto
+    });
+
+    return { mensaje: 'Key devuelta y deshabilitada correctamente.' };
   }
 }
