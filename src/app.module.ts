@@ -18,6 +18,10 @@ import { BibliotecaDetalleModule } from './biblioteca-detalle/biblioteca-detalle
 import { BibliotecaModule } from './biblioteca/biblioteca.module';
 import { TransaccionModule } from './transaccion/transaccion.module';
 import { EventoModule } from './evento/evento.module';
+import { SuscripcionService } from './suscripcion/suscripcion.service';
+import { SuscripcionController } from './suscripcion/suscripcion.controller';
+import { SuscripcionModule } from './suscripcion/suscripcion.module';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   imports: [
@@ -40,8 +44,9 @@ import { EventoModule } from './evento/evento.module';
     BibliotecaModule,
     TransaccionModule,
     EventoModule,
+    SuscripcionModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, SuscripcionController],
+  providers: [AppService, SuscripcionService, PrismaService],
 })
 export class AppModule {}

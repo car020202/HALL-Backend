@@ -226,12 +226,14 @@ model suscripcion {
   fecha_inicio          DateTime
   fecha_fin             DateTime
   id_tipo_suscripcion   Int
+  renovacion_automatica Boolean           @default(true) // NUEVO CAMPO
   estado_suscripcion    estado_suscripcion @relation(fields: [id_estado_suscripcion], references: [id_estado_suscripcion])
   tipo_suscripcion      tipo_suscripcion   @relation(fields: [id_tipo_suscripcion], references: [id_tipo_suscripcion])
   usuario               usuario            @relation("usuario_to_suscripcion", fields: [id_usuario], references: [id_usuario])
 
   @@map("suscripcion")
 }
+
 
 model tipo_suscripcion {
   id_tipo_suscripcion Int                 @id @default(autoincrement()) @map("id_tipo_suscripcion")
@@ -252,25 +254,16 @@ model estado_suscripcion {
 }
 
 model juego_suscripcion {
-  id_key_suscripcion  Int                       @id @default(autoincrement()) @map("id_key_suscripcion")
+  id_key_suscripcion  Int      @id @default(autoincrement()) @map("id_key_suscripcion")
   id_tipo_suscripcion Int
   id_juego            Int
-  jerarquia_hija      jerarquia_suscripciones[] @relation("jerarquia_hija")
-  jerarquia_padre     jerarquia_suscripciones[] @relation("jerarquia_padre")
-  juego               juego                     @relation(fields: [id_juego], references: [id_juego])
-  tipo_suscripcion    tipo_suscripcion          @relation(fields: [id_tipo_suscripcion], references: [id_tipo_suscripcion])
+  semana_global       Int      // Semana global, no por usuario
+
+  // Relaciones
+  juego               juego            @relation(fields: [id_juego], references: [id_juego])
+  tipo_suscripcion    tipo_suscripcion @relation(fields: [id_tipo_suscripcion], references: [id_tipo_suscripcion])
 
   @@map("juego_suscripcion")
-}
-
-model jerarquia_suscripciones {
-  id_key_suscripcion Int               @id @default(autoincrement()) @map("id_key_suscripcion")
-  id_padre           Int
-  id_hija            Int
-  hija               juego_suscripcion @relation("jerarquia_hija", fields: [id_hija], references: [id_key_suscripcion])
-  padre              juego_suscripcion @relation("jerarquia_padre", fields: [id_padre], references: [id_key_suscripcion])
-
-  @@map("jerarquia_suscripciones")
 }
 
 model regalo_evento {
@@ -290,4 +283,9 @@ model plataforma {
   keys          key[]
 
   @@map("plataforma")
+}
+
+model configuracion {
+  id_configuracion Int @id @default(autoincrement())
+  semana_global    Int
 }
