@@ -33,6 +33,58 @@ export class JuegoService {
       },
     });
   }
+  /** Juegos con portada y precio mínimo filtrados por plataforma */
+  async findByPlataformaWithPortadas(id_plataforma: number) {
+    const juegos = await this.prisma.juego.findMany({
+      where: {
+        key: {
+          some: {
+            estado_key: { nombre: 'disponible' },
+            plataforma: { id_plataforma },
+          },
+        },
+      },
+      include: {
+        categoria: true,
+        key: {
+          where: {
+            estado_key: { nombre: 'disponible' },
+            plataforma: { id_plataforma },
+          },
+          select: {
+            precio_venta: true,
+            plataforma: true, // ✅ incluir datos de la plataforma
+          },
+        },
+      },
+    });
+
+    const juegosConExtras = await Promise.all(
+      juegos.map(async (j) => {
+        const { results } = await this.rawgService.searchGames(j.titulo, 1, 1);
+        const portada = results?.[0]?.background_image ?? null;
+
+        const ventas = j.key.map((k) => Number(k.precio_venta));
+        const precioMin = ventas.length ? Math.min(...ventas) : null;
+
+        return {
+          ...j,
+          portada,
+          categoriaNombre: j.categoria.nombre,
+          precio: precioMin,
+          plataformas: [
+            ...new Map(
+              j.key
+                .filter((k) => k.plataforma)
+                .map((k) => [k.plataforma.id_plataforma, k.plataforma]),
+            ).values(),
+          ], // plataformas únicas asociadas a este juego
+        };
+      }),
+    );
+
+    return juegosConExtras;
+  }
 
   /** BD + portada RAWG + precio mínimo de venta */
   async findAllWithPortadas() {

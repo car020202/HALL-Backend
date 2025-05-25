@@ -40,6 +40,12 @@ export class JuegoController {
     return this.juegoService.findAllWithPortadas();
   }
 
+  // GET /juego/plataforma/:id/con-portadas
+  @Get('plataforma/:id/con-portadas')
+  getByPlataformaWithPortadas(@Param('id', ParseIntPipe) id: number) {
+    return this.juegoService.findByPlataformaWithPortadas(id);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.juegoService.findOne(id);
