@@ -65,6 +65,12 @@ async function main() {
     ],
     skipDuplicates: true,
   });
+
+  // 8) Estado de evento
+  await prisma.evento_estado.createMany({
+    data: [{ nombre: 'activo' }, { nombre: 'expirado' }],
+    skipDuplicates: true,
+  });
 }
 
 main()

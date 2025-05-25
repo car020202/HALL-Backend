@@ -69,16 +69,25 @@ model biblioteca_detalle {
 }
 
 model evento {
-  id_evento        Int           @id @default(autoincrement()) @map("id_evento")
-  fecha_inicio     DateTime
-  id_regalo_evento Int
-  titulo           String
-  fecha_fin        DateTime
-  estado           String
-  descripcion      String
-  regalo_evento    regalo_evento @relation(fields: [id_regalo_evento], references: [id_regalo_evento])
+  id_evento         Int           @id @default(autoincrement()) @map("id_evento")
+  fecha_inicio      DateTime
+  id_regalo_evento  Int
+  titulo            String
+  fecha_fin         DateTime
+  id_evento_estado  Int
+  descripcion       String
+  regalo_evento     regalo_evento @relation(fields: [id_regalo_evento], references: [id_regalo_evento])
+  evento_estado     evento_estado @relation(fields: [id_evento_estado], references: [id_evento_estado])
 
   @@map("evento")
+}
+
+model evento_estado {
+  id_evento_estado Int     @id @default(autoincrement()) @map("id_evento_estado")
+  nombre           String
+  evento           evento[]
+
+  @@map("evento_estado")
 }
 
 model categoria_juego {
