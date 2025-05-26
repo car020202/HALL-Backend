@@ -6,6 +6,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class SuscripcionService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async obtenerSuscripcionesPorUsuario(id_usuario: number) {
+    return this.prisma.suscripcion.findMany({
+      where: { id_usuario },
+      include: {
+        tipo_suscripcion: true,
+        estado_suscripcion: true,
+      },
+      orderBy: { fecha_inicio: 'desc' },
+    });
+  }
+
   // Evitar que un usuario con suscripción activa se vuelva a suscribir
   async suscribirse(data: { id_usuario: number; id_tipo_suscripcion: number }) {
     const fechaActual = new Date();

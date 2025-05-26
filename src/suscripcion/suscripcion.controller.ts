@@ -1,10 +1,19 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Param, ParseIntPipe } from '@nestjs/common';
+
+import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
 import { SuscripcionService } from './suscripcion.service';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('suscripcion')
 export class SuscripcionController {
   constructor(private readonly suscripcionService: SuscripcionService) {}
+
+  @Get(':id')
+  async obtenerSuscripcionesPorUsuario(@Param('id', ParseIntPipe) id: number) {
+    const suscripciones =
+      await this.suscripcionService.obtenerSuscripcionesPorUsuario(id);
+    return suscripciones;
+  }
 
   // Endpoint para asignar juegos a los planes por precio de key
   @Post('asignar-juegos-semana')

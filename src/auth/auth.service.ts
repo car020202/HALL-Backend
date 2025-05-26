@@ -207,4 +207,22 @@ export class AuthService {
 
     return { message: 'Nombre actualizado exitosamente', updatedUser };
   }
+
+  async verificarPassword(userId: number, contraseña: string) {
+    const user = await this.prisma.usuario.findUnique({
+      where: { id_usuario: userId },
+    });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    const isMatch = await bcrypt.compare(contraseña, user.contraseña);
+
+    if (!isMatch) {
+      throw new Error('Contraseña incorrecta');
+    }
+
+    return { success: true };
+  }
 }

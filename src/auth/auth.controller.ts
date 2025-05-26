@@ -89,4 +89,11 @@ export class AuthController {
   async getProfile(@Req() req) {
     return req.user; // Devuelve la información del usuario autenticado
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('verificar-password')
+  async verificarPassword(@Req() req, @Body('contraseña') contraseña: string) {
+    const userId = req.user.id_usuario;
+    return this.authService.verificarPassword(userId, contraseña);
+  }
 }
