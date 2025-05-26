@@ -6,6 +6,37 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class SuscripcionService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async obtenerSuscripcionActiva(id_usuario: number) {
+    const fechaActual = new Date();
+    return this.prisma.suscripcion.findFirst({
+      where: {
+        id_usuario,
+        fecha_inicio: { lte: fechaActual },
+        fecha_fin: { gte: fechaActual },
+        estado_suscripcion: { nombre: 'activa' },
+      },
+      include: {
+        tipo_suscripcion: true,
+        estado_suscripcion: true,
+      },
+      orderBy: { fecha_inicio: 'desc' },
+    });
+  }
+
+  async obtenerHistorialSuscripciones(id_usuario: number) {
+    return this.prisma.suscripcion.findMany({
+      where: {
+        id_usuario,
+        estado_suscripcion: { NOT: { nombre: 'activa' } },
+      },
+      include: {
+        tipo_suscripcion: true,
+        estado_suscripcion: true,
+      },
+      orderBy: { fecha_inicio: 'desc' },
+    });
+  }
+
   async obtenerSuscripcionesPorUsuario(id_usuario: number) {
     return this.prisma.suscripcion.findMany({
       where: { id_usuario },
@@ -30,14 +61,97 @@ export class SuscripcionService {
       },
     });
 
+    // Si tiene suscripción activa
     if (suscripcionActiva) {
+      if (suscripcionActiva.id_tipo_suscripcion === data.id_tipo_suscripcion) {
+        return {
+          mensaje: 'Ya tienes una suscripción activa a este mismo plan.',
+          yaSuscrito: true,
+        };
+      }
+
+      const planActual = await this.prisma.tipo_suscripcion.findUnique({
+        where: { id_tipo_suscripcion: suscripcionActiva.id_tipo_suscripcion },
+      });
+
+      const nuevoPlan = await this.prisma.tipo_suscripcion.findUnique({
+        where: { id_tipo_suscripcion: data.id_tipo_suscripcion },
+      });
+
+      if (!planActual || !nuevoPlan) {
+        throw new Error('Error al comparar niveles de suscripción.');
+      }
+
+      // ✅ MEJORA DE PLAN (se cobra y se reinicia)
+      if (nuevoPlan.precio > planActual.precio) {
+        const estadoCancelada = await this.prisma.estado_suscripcion.findFirst({
+          where: { nombre: 'cancelada' },
+        });
+
+        if (!estadoCancelada) {
+          throw new Error('No se encontró el estado "cancelada".');
+        }
+
+        await this.prisma.suscripcion.update({
+          where: { id_suscripcion: suscripcionActiva.id_suscripcion },
+          data: {
+            estado_suscripcion: {
+              connect: {
+                id_estado_suscripcion: estadoCancelada.id_estado_suscripcion,
+              },
+            },
+          },
+        });
+
+        const fecha_inicio = new Date();
+        const fecha_fin = new Date();
+        fecha_fin.setDate(fecha_inicio.getDate() + 7);
+
+        const estado = await this.prisma.estado_suscripcion.findFirst({
+          where: { nombre: 'activa' },
+        });
+
+        if (!estado) {
+          throw new Error(
+            'No se encontró el estado "activa" en la base de datos.',
+          );
+        }
+
+        const nuevaSuscripcion = await this.prisma.suscripcion.create({
+          data: {
+            id_usuario: data.id_usuario,
+            id_tipo_suscripcion: data.id_tipo_suscripcion,
+            fecha_inicio,
+            fecha_fin,
+            id_estado_suscripcion: estado.id_estado_suscripcion,
+            renovacion_automatica: true,
+          },
+        });
+
+        return {
+          mensaje: 'Has mejorado tu plan. Nueva suscripción activa.',
+          yaSuscrito: false,
+          suscripcion: nuevaSuscripcion,
+        };
+      }
+
+      // 🔽 DEGRADACIÓN DE PLAN (solo actualiza, no cobra)
+      await this.prisma.suscripcion.update({
+        where: { id_suscripcion: suscripcionActiva.id_suscripcion },
+        data: {
+          id_tipo_suscripcion: data.id_tipo_suscripcion,
+        },
+      });
+
       return {
         mensaje:
-          'Ya tienes una suscripción activa. No puedes suscribirte nuevamente hasta que finalice.',
+          'Tu plan fue degradado con éxito. Mantendrás la duración actual.',
         yaSuscrito: true,
+        cambioDePlan: true,
       };
     }
 
+    // 🆕 NUEVA SUSCRIPCIÓN
     const fecha_inicio = new Date();
     const fecha_fin = new Date();
     fecha_fin.setDate(fecha_inicio.getDate() + 7);
@@ -60,53 +174,6 @@ export class SuscripcionService {
         renovacion_automatica: true,
       },
     });
-
-    const config = await this.prisma.configuracion.findFirst();
-    const semana = config?.semana_global ?? 1;
-
-    const juegosAsignados = await this.prisma.juego_suscripcion.findMany({
-      where: {
-        id_tipo_suscripcion: data.id_tipo_suscripcion,
-        semana_global: semana,
-      },
-    });
-
-    let biblioteca = await this.prisma.biblioteca.findFirst({
-      where: { id_usuario: data.id_usuario },
-    });
-    if (!biblioteca) {
-      biblioteca = await this.prisma.biblioteca.create({
-        data: { id_usuario: data.id_usuario },
-      });
-    }
-
-    for (const juegoSuscripcion of juegosAsignados) {
-      const yaTiene = await this.prisma.biblioteca_detalle.findFirst({
-        where: {
-          biblioteca: { id_usuario: data.id_usuario },
-          key: { id_juego: juegoSuscripcion.id_juego },
-        },
-      });
-      if (yaTiene) continue;
-
-      const key = await this.prisma.key.findFirst({
-        where: {
-          id_juego: juegoSuscripcion.id_juego,
-          estado_key: { nombre: 'disponible' },
-        },
-      });
-
-      if (key) {
-        await this.prisma.biblioteca_detalle.create({
-          data: { id_biblioteca: biblioteca.id_biblioteca, id_key: key.id_key },
-        });
-
-        await this.prisma.key.update({
-          where: { id_key: key.id_key },
-          data: { id_estado_key: 2 },
-        });
-      }
-    }
 
     return {
       mensaje: 'Suscripción creada exitosamente.',
