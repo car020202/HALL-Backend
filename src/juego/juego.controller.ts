@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Query,
   Post,
   Patch,
   Delete,
@@ -26,6 +27,12 @@ export class JuegoController {
     },
   ) {
     return this.juegoService.create(data);
+  }
+
+  @Get('buscar')
+  async buscarJuegos(@Query('query') query: string) {
+    const juegos = await this.juegoService.buscarPorTitulo(query);
+    return juegos;
   }
 
   // GET /juego - solo datos DB

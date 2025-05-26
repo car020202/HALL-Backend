@@ -20,6 +20,21 @@ export class JuegoService {
     return this.prisma.juego.create({ data });
   }
 
+  async buscarPorTitulo(query: string) {
+    return this.prisma.juego.findMany({
+      where: {
+        titulo: {
+          contains: query,
+          mode: 'insensitive',
+        },
+      },
+      select: {
+        id_juego: true,
+        titulo: true,
+      },
+    });
+  }
+
   /** Solo BD: listar todos los juegos sin extras */
   async findAll() {
     return this.prisma.juego.findMany({
