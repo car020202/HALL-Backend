@@ -180,6 +180,7 @@ model transaccion {
   id_tipo_transaccion Int
   monto               Decimal               @db.Decimal(10, 2)
   descripcion         String
+  metodo_pago         String?              @default("Tarjeta") // NUEVO
   fecha               DateTime              @default(now())
   detalle_transaccion detalle_transaccion[]
   tipo_transaccion    tipo_transaccion      @relation(fields: [id_tipo_transaccion], references: [id_tipo_transaccion])
@@ -188,6 +189,7 @@ model transaccion {
 
   @@map("transaccion")
 }
+
 
 model tipo_transaccion {
   id_tipo_transaccion Int           @id @default(autoincrement()) @map("id_tipo_transaccion")

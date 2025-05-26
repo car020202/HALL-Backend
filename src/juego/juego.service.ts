@@ -138,6 +138,7 @@ export class JuegoService {
             estado_key: { nombre: 'disponible' },
           },
           select: {
+            id_key: true,
             precio_venta: true,
             plataforma: true, // <-- Incluye la plataforma de cada key
           },
