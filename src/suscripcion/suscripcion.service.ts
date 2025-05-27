@@ -1,10 +1,56 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
+import { JuegoService } from '../juego/juego.service';
 
 @Injectable()
 export class SuscripcionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly juegoService: JuegoService,
+  ) {}
+
+  async obtenerHistorialJuegosPorSemana() {
+    const semanas = await this.prisma.juego_suscripcion.findMany({
+      include: {
+        tipo_suscripcion: true,
+        juego: true,
+      },
+      orderBy: [{ semana_global: 'desc' }, { id_tipo_suscripcion: 'asc' }],
+    });
+
+    const rawgService = this.juegoService['rawgService']; // manual access al servicio RAWG
+
+    const agrupado = {};
+
+    for (const entry of semanas) {
+      const semana = entry.semana_global;
+      if (!agrupado[semana]) agrupado[semana] = [];
+
+      let portada = null;
+
+      if (entry.juego?.titulo) {
+        try {
+          const { results } = await rawgService.searchGames(
+            entry.juego.titulo,
+            1,
+            1,
+          );
+          portada = results?.[0]?.background_image ?? null;
+        } catch (err) {
+          portada = null;
+        }
+      }
+
+      agrupado[semana].push({
+        plan: entry.tipo_suscripcion.nombre,
+        juego: entry.juego.titulo,
+        portada,
+      });
+    }
+
+    return agrupado;
+  }
 
   async obtenerSuscripcionActiva(id_usuario: number) {
     const fechaActual = new Date();
@@ -128,6 +174,12 @@ export class SuscripcionService {
           },
         });
 
+        // Asignar juegos automáticamente al mejorar plan
+        await this.asignarJuegosABibliotecaUsuario(
+          data.id_usuario,
+          data.id_tipo_suscripcion,
+        );
+
         return {
           mensaje: 'Has mejorado tu plan. Nueva suscripción activa.',
           yaSuscrito: false,
@@ -175,6 +227,12 @@ export class SuscripcionService {
       },
     });
 
+    // Asignar juegos automáticamente al suscribirse
+    await this.asignarJuegosABibliotecaUsuario(
+      data.id_usuario,
+      data.id_tipo_suscripcion,
+    );
+
     return {
       mensaje: 'Suscripción creada exitosamente.',
       yaSuscrito: false,
@@ -213,7 +271,6 @@ export class SuscripcionService {
 
       const juegos = await this.prisma.juego.findMany({
         where: {
-          id_juego: { notIn: idsYaRegalados },
           key: {
             some: {
               estado_key: { nombre: 'disponible' },
@@ -328,5 +385,68 @@ export class SuscripcionService {
     const config = await this.prisma.configuracion.findFirst();
     const semana = config?.semana_global ?? 1;
     await this.asignarJuegosAutomaticamentePorPrecioKey(semana);
+  }
+
+  // Nueva función auxiliar para asignar juegos de todos los planes inferiores (incluido el propio)
+  private async asignarJuegosABibliotecaUsuario(
+    id_usuario: number,
+    id_tipo_suscripcion: number,
+  ) {
+    // Obtén la semana actual
+    const config = await this.prisma.configuracion.findFirst();
+    const semana = config?.semana_global ?? 1;
+
+    // Busca los planes de igual o menor jerarquía (asume que id_tipo_suscripcion mayor = plan más alto)
+    const planes = await this.prisma.tipo_suscripcion.findMany({
+      where: {
+        id_tipo_suscripcion: { lte: id_tipo_suscripcion },
+      },
+      orderBy: { id_tipo_suscripcion: 'asc' },
+    });
+
+    // Busca o crea la biblioteca del usuario
+    let biblioteca = await this.prisma.biblioteca.findFirst({
+      where: { id_usuario },
+    });
+    if (!biblioteca) {
+      biblioteca = await this.prisma.biblioteca.create({
+        data: { id_usuario },
+      });
+    }
+
+    for (const plan of planes) {
+      // Busca el juego asignado a ese plan y semana
+      const juegoSuscripcion = await this.prisma.juego_suscripcion.findFirst({
+        where: {
+          id_tipo_suscripcion: plan.id_tipo_suscripcion,
+          semana_global: semana,
+        },
+      });
+
+      if (juegoSuscripcion) {
+        // Busca una key disponible para el juego
+        const key = await this.prisma.key.findFirst({
+          where: {
+            id_juego: juegoSuscripcion.id_juego,
+            estado_key: { nombre: 'disponible' },
+          },
+        });
+
+        if (key) {
+          await this.prisma.biblioteca_detalle.create({
+            data: {
+              id_biblioteca: biblioteca.id_biblioteca,
+              id_key: key.id_key,
+            },
+          });
+
+          // Cambia el estado de la key a "entregada"
+          await this.prisma.key.update({
+            where: { id_key: key.id_key },
+            data: { id_estado_key: 2 }, // Ajusta el id según tu catálogo
+          });
+        }
+      }
+    }
   }
 }

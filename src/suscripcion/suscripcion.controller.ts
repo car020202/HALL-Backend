@@ -1,4 +1,4 @@
-import { Param, ParseIntPipe } from '@nestjs/common';
+import { Param, ParseIntPipe, Query } from '@nestjs/common';
 import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
 import { SuscripcionService } from './suscripcion.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -11,6 +11,11 @@ export class SuscripcionController {
     private readonly juegoService: JuegoService,
   ) {}
 
+  @Get('historial-juegos')
+  async historialJuegosPorSemana() {
+    return await this.suscripcionService.obtenerHistorialJuegosPorSemana();
+  }
+
   @Get(':id/activa')
   async obtenerSuscripcionActiva(@Param('id', ParseIntPipe) id: number) {
     return this.suscripcionService.obtenerSuscripcionActiva(id);
@@ -22,10 +27,8 @@ export class SuscripcionController {
   }
 
   @Get('tipos')
-  async obtenerTiposConJuegoActual() {
-    const config =
-      await this.suscripcionService['prisma'].configuracion.findFirst();
-    const semana = config?.semana_global ?? 1;
+  async obtenerTiposConJuegoActual(@Query('semana') semanaParam: string) {
+    const semana = parseInt(semanaParam) || 1;
 
     const tipos = await this.suscripcionService[
       'prisma'
@@ -43,8 +46,8 @@ export class SuscripcionController {
     return await Promise.all(
       tipos.map(async (tipo) => {
         const juego = tipo.juego_suscripcion[0]?.juego || null;
-
         let portada = null;
+
         if (juego) {
           const { results } = await this.juegoService[
             'rawgService'
@@ -56,12 +59,7 @@ export class SuscripcionController {
           id_tipo_suscripcion: tipo.id_tipo_suscripcion,
           nombre: tipo.nombre,
           precio: tipo.precio,
-          juegoActual: juego
-            ? {
-                ...juego,
-                portada,
-              }
-            : null,
+          juegoActual: juego ? { ...juego, portada } : null,
         };
       }),
     );
