@@ -98,6 +98,79 @@ export class SuscripcionService {
   async suscribirse(data: { id_usuario: number; id_tipo_suscripcion: number }) {
     const fechaActual = new Date();
 
+    const asignarJuegos = async (
+      id_usuario: number,
+      id_tipo_suscripcion: number,
+    ) => {
+      const config = await this.prisma.configuracion.findFirst();
+      const semana = config?.semana_global ?? 1;
+
+      const planes = await this.prisma.tipo_suscripcion.findMany({
+        where: {
+          id_tipo_suscripcion: { lte: id_tipo_suscripcion },
+        },
+        orderBy: { id_tipo_suscripcion: 'asc' },
+      });
+
+      let biblioteca = await this.prisma.biblioteca.findFirst({
+        where: { id_usuario },
+      });
+      if (!biblioteca) {
+        biblioteca = await this.prisma.biblioteca.create({
+          data: { id_usuario },
+        });
+      }
+
+      for (const plan of planes) {
+        const juegoSuscripcion = await this.prisma.juego_suscripcion.findFirst({
+          where: {
+            id_tipo_suscripcion: plan.id_tipo_suscripcion,
+            semana_global: semana,
+          },
+        });
+
+        if (!juegoSuscripcion) continue;
+
+        // Evita duplicado si ya se tiene un key de ese juego
+        const yaTieneElJuego = await this.prisma.biblioteca_detalle.findFirst({
+          where: {
+            id_biblioteca: biblioteca.id_biblioteca,
+            key: {
+              is: {
+                id_juego: juegoSuscripcion.id_juego,
+              },
+            },
+          },
+        });
+
+        if (yaTieneElJuego) continue;
+
+        const keysDisponibles = await this.prisma.key.findMany({
+          where: {
+            id_juego: juegoSuscripcion.id_juego,
+            estado_key: { nombre: 'disponible' },
+          },
+        });
+
+        if (keysDisponibles.length > 0) {
+          const keyAleatoria =
+            keysDisponibles[Math.floor(Math.random() * keysDisponibles.length)];
+
+          await this.prisma.biblioteca_detalle.create({
+            data: {
+              id_biblioteca: biblioteca.id_biblioteca,
+              id_key: keyAleatoria.id_key,
+            },
+          });
+
+          await this.prisma.key.update({
+            where: { id_key: keyAleatoria.id_key },
+            data: { id_estado_key: 2 },
+          });
+        }
+      }
+    };
+
     const suscripcionActiva = await this.prisma.suscripcion.findFirst({
       where: {
         id_usuario: data.id_usuario,
@@ -107,7 +180,6 @@ export class SuscripcionService {
       },
     });
 
-    // Si tiene suscripción activa
     if (suscripcionActiva) {
       if (suscripcionActiva.id_tipo_suscripcion === data.id_tipo_suscripcion) {
         return {
@@ -128,7 +200,7 @@ export class SuscripcionService {
         throw new Error('Error al comparar niveles de suscripción.');
       }
 
-      // ✅ MEJORA DE PLAN (se cobra y se reinicia)
+      // Mejora de plan
       if (nuevoPlan.precio > planActual.precio) {
         const estadoCancelada = await this.prisma.estado_suscripcion.findFirst({
           where: { nombre: 'cancelada' },
@@ -174,11 +246,7 @@ export class SuscripcionService {
           },
         });
 
-        // Asignar juegos automáticamente al mejorar plan
-        await this.asignarJuegosABibliotecaUsuario(
-          data.id_usuario,
-          data.id_tipo_suscripcion,
-        );
+        await asignarJuegos(data.id_usuario, data.id_tipo_suscripcion);
 
         return {
           mensaje: 'Has mejorado tu plan. Nueva suscripción activa.',
@@ -187,7 +255,7 @@ export class SuscripcionService {
         };
       }
 
-      // 🔽 DEGRADACIÓN DE PLAN (solo actualiza, no cobra)
+      // Degradación de plan
       await this.prisma.suscripcion.update({
         where: { id_suscripcion: suscripcionActiva.id_suscripcion },
         data: {
@@ -203,7 +271,7 @@ export class SuscripcionService {
       };
     }
 
-    // 🆕 NUEVA SUSCRIPCIÓN
+    // Nueva suscripción
     const fecha_inicio = new Date();
     const fecha_fin = new Date();
     fecha_fin.setDate(fecha_inicio.getDate() + 7);
@@ -227,11 +295,7 @@ export class SuscripcionService {
       },
     });
 
-    // Asignar juegos automáticamente al suscribirse
-    await this.asignarJuegosABibliotecaUsuario(
-      data.id_usuario,
-      data.id_tipo_suscripcion,
-    );
+    await asignarJuegos(data.id_usuario, data.id_tipo_suscripcion);
 
     return {
       mensaje: 'Suscripción creada exitosamente.',
@@ -262,12 +326,20 @@ export class SuscripcionService {
     ];
 
     for (const plan of planes) {
-      const juegosYaRegalados = await this.prisma.juego_suscripcion.findMany({
-        where: { id_tipo_suscripcion: plan.id },
-        select: { id_juego: true },
+      // Verificar si ya se asignó un juego para este plan y semana
+      const yaExiste = await this.prisma.juego_suscripcion.findFirst({
+        where: {
+          id_tipo_suscripcion: plan.id,
+          semana_global: semana_global,
+        },
       });
 
-      const idsYaRegalados = juegosYaRegalados.map((j) => j.id_juego);
+      if (yaExiste) {
+        console.log(
+          `Ya hay juego asignado para el plan ${plan.id} en la semana ${semana_global}`,
+        );
+        continue;
+      }
 
       const juegos = await this.prisma.juego.findMany({
         where: {
@@ -290,7 +362,10 @@ export class SuscripcionService {
         },
       });
 
-      if (juegos.length === 0) continue;
+      if (juegos.length === 0) {
+        console.warn(`No hay juegos disponibles para el plan ${plan.id}`);
+        continue;
+      }
 
       const juegoAleatorio = juegos[Math.floor(Math.random() * juegos.length)];
 
@@ -301,6 +376,10 @@ export class SuscripcionService {
           semana_global,
         },
       });
+
+      console.log(
+        `Juego asignado al plan ${plan.id} en semana ${semana_global}`,
+      );
     }
   }
 
@@ -385,68 +464,5 @@ export class SuscripcionService {
     const config = await this.prisma.configuracion.findFirst();
     const semana = config?.semana_global ?? 1;
     await this.asignarJuegosAutomaticamentePorPrecioKey(semana);
-  }
-
-  // Nueva función auxiliar para asignar juegos de todos los planes inferiores (incluido el propio)
-  private async asignarJuegosABibliotecaUsuario(
-    id_usuario: number,
-    id_tipo_suscripcion: number,
-  ) {
-    // Obtén la semana actual
-    const config = await this.prisma.configuracion.findFirst();
-    const semana = config?.semana_global ?? 1;
-
-    // Busca los planes de igual o menor jerarquía (asume que id_tipo_suscripcion mayor = plan más alto)
-    const planes = await this.prisma.tipo_suscripcion.findMany({
-      where: {
-        id_tipo_suscripcion: { lte: id_tipo_suscripcion },
-      },
-      orderBy: { id_tipo_suscripcion: 'asc' },
-    });
-
-    // Busca o crea la biblioteca del usuario
-    let biblioteca = await this.prisma.biblioteca.findFirst({
-      where: { id_usuario },
-    });
-    if (!biblioteca) {
-      biblioteca = await this.prisma.biblioteca.create({
-        data: { id_usuario },
-      });
-    }
-
-    for (const plan of planes) {
-      // Busca el juego asignado a ese plan y semana
-      const juegoSuscripcion = await this.prisma.juego_suscripcion.findFirst({
-        where: {
-          id_tipo_suscripcion: plan.id_tipo_suscripcion,
-          semana_global: semana,
-        },
-      });
-
-      if (juegoSuscripcion) {
-        // Busca una key disponible para el juego
-        const key = await this.prisma.key.findFirst({
-          where: {
-            id_juego: juegoSuscripcion.id_juego,
-            estado_key: { nombre: 'disponible' },
-          },
-        });
-
-        if (key) {
-          await this.prisma.biblioteca_detalle.create({
-            data: {
-              id_biblioteca: biblioteca.id_biblioteca,
-              id_key: key.id_key,
-            },
-          });
-
-          // Cambia el estado de la key a "entregada"
-          await this.prisma.key.update({
-            where: { id_key: key.id_key },
-            data: { id_estado_key: 2 }, // Ajusta el id según tu catálogo
-          });
-        }
-      }
-    }
   }
 }
