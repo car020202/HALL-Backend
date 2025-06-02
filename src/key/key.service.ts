@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Param } from '@nestjs/common/decorators/http/route-params.decorator';
 
 @Injectable()
 export class KeyService {
@@ -228,5 +229,25 @@ export class KeyService {
       titulo: juegos.find((j) => j.id_juego === c.id_juego)?.titulo ?? null,
       cantidad: c._count.id_key,
     }));
+  }
+
+  /** Buscar keys por estado */
+  async findByEstado(id: number, skip = 0, take = 20) {
+    return this.prisma.key.findMany({
+      where: { id_estado_key: id },
+      skip,
+      take,
+      orderBy: { id_key: 'desc' },
+      select: {
+        id_key: true,
+        key: true,
+        precio_compra: true,
+        precio_venta: true,
+        proveedor: { select: { nombre: true } },
+        juego: { select: { titulo: true } },
+        plataforma: { select: { nombre: true } },
+        estado_key: { select: { nombre: true } },
+      },
+    });
   }
 }

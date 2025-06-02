@@ -86,4 +86,16 @@ export class KeyController {
   findByPrecio(@Body('precio') precio: number) {
     return this.keyService.findByPrecio(precio);
   }
+  @Get('estado/:id')
+  findByEstado(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.keyService.findByEstado(
+      id,
+      Number(skip) || 0,
+      Number(take) || 100,
+    );
+  }
 }
