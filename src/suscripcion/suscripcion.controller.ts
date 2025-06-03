@@ -1,7 +1,6 @@
 import { Param, ParseIntPipe, Query } from '@nestjs/common';
-import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch } from '@nestjs/common';
 import { SuscripcionService } from './suscripcion.service';
-import { AuthGuard } from '@nestjs/passport';
 import { JuegoService } from '../juego/juego.service';
 
 @Controller('suscripcion')
@@ -11,19 +10,16 @@ export class SuscripcionController {
     private readonly juegoService: JuegoService,
   ) {}
 
+  @Get('semana-actual')
+  async obtenerSemanaActual() {
+    const config =
+      await this.suscripcionService['prisma'].configuracion.findFirst();
+    return { semana: config?.semana_global ?? 1 };
+  }
+
   @Get('historial-juegos')
   async historialJuegosPorSemana() {
     return await this.suscripcionService.obtenerHistorialJuegosPorSemana();
-  }
-
-  @Get(':id/activa')
-  async obtenerSuscripcionActiva(@Param('id', ParseIntPipe) id: number) {
-    return this.suscripcionService.obtenerSuscripcionActiva(id);
-  }
-
-  @Get(':id/historial')
-  async obtenerHistorialSuscripciones(@Param('id', ParseIntPipe) id: number) {
-    return this.suscripcionService.obtenerHistorialSuscripciones(id);
   }
 
   @Get('tipos')
@@ -65,6 +61,21 @@ export class SuscripcionController {
     );
   }
 
+  @Get(':id/juego-semana')
+  async juegoDeLaSemana(@Param('id', ParseIntPipe) id: number) {
+    return this.suscripcionService.obtenerJuegoDeLaSemana(id);
+  }
+
+  @Get(':id/activa')
+  async obtenerSuscripcionActiva(@Param('id', ParseIntPipe) id: number) {
+    return this.suscripcionService.obtenerSuscripcionActiva(id);
+  }
+
+  @Get(':id/historial')
+  async obtenerHistorialSuscripciones(@Param('id', ParseIntPipe) id: number) {
+    return this.suscripcionService.obtenerHistorialSuscripciones(id);
+  }
+
   @Get(':id')
   async obtenerSuscripcionesPorUsuario(@Param('id', ParseIntPipe) id: number) {
     const suscripciones =
@@ -72,7 +83,6 @@ export class SuscripcionController {
     return suscripciones;
   }
 
-  // Endpoint para asignar juegos a los planes por precio de key
   @Post('asignar-juegos-semana')
   async asignarJuegosSemana(@Body() body: { semana_global: number }) {
     await this.suscripcionService.asignarJuegosAutomaticamentePorPrecioKey(
@@ -83,7 +93,6 @@ export class SuscripcionController {
     };
   }
 
-  // Endpoint para suscribirse a un plan
   @Post('suscribirse')
   async suscribirse(
     @Body() body: { id_usuario: number; id_tipo_suscripcion: number },
@@ -92,14 +101,12 @@ export class SuscripcionController {
     return { mensaje: 'Suscripción creada.', result };
   }
 
-  // Endpoint para asignar juegos semanales a usuarios activos
   @Post('asignar-juegos-usuarios')
   async asignarJuegosUsuarios() {
     await this.suscripcionService.asignarJuegosSemanales();
     return { mensaje: 'Juegos asignados a los usuarios activos.' };
   }
 
-  // Endpoint manual para asignar un juego a un plan y semana
   @Post('asignar-juego-plan')
   async asignarJuegoAPlan(
     @Body()
@@ -119,5 +126,22 @@ export class SuscripcionController {
       body.id_usuario,
     );
     return { mensaje: 'Renovación automática cancelada.', updated };
+  }
+
+  @Patch('cambiar-semana')
+  async cambiarSemanaGlobal(@Body() body: { semana: number }) {
+    const config =
+      await this.suscripcionService['prisma'].configuracion.findFirst();
+
+    if (!config) {
+      return await this.suscripcionService['prisma'].configuracion.create({
+        data: { semana_global: body.semana },
+      });
+    }
+
+    return await this.suscripcionService['prisma'].configuracion.update({
+      where: { id_configuracion: config.id_configuracion },
+      data: { semana_global: body.semana },
+    });
   }
 }

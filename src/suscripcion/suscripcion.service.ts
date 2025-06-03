@@ -10,6 +10,34 @@ export class SuscripcionService {
     private readonly juegoService: JuegoService,
   ) {}
 
+  async obtenerJuegoDeLaSemana(id_usuario: number) {
+    const config = await this.prisma.configuracion.findFirst();
+    const semana = config?.semana_global ?? 1;
+
+    const suscripcion = await this.prisma.suscripcion.findFirst({
+      where: {
+        id_usuario,
+        estado_suscripcion: { nombre: 'activa' },
+        fecha_inicio: { lte: new Date() },
+        fecha_fin: { gte: new Date() },
+      },
+    });
+
+    if (!suscripcion) return null;
+
+    const juegoSuscripcion = await this.prisma.juego_suscripcion.findFirst({
+      where: {
+        id_tipo_suscripcion: suscripcion.id_tipo_suscripcion,
+        semana_global: semana,
+      },
+      include: { juego: true },
+    });
+
+    if (!juegoSuscripcion) return null;
+
+    return juegoSuscripcion.juego;
+  }
+
   async obtenerHistorialJuegosPorSemana() {
     const semanas = await this.prisma.juego_suscripcion.findMany({
       include: {

@@ -7,7 +7,10 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { BibliotecaService } from './biblioteca.service';
 import { RawgService } from '../juego/rawg.service';
 
@@ -60,5 +63,15 @@ export class BibliotecaController {
     @Body('id_key', ParseIntPipe) id_key: number,
   ) {
     return this.bibliotecaService.devolverKey(id_usuario, id_key);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('amigo/:id_amigo')
+  async getJuegosDeAmigo(
+    @Req() req,
+    @Param('id_amigo', ParseIntPipe) id_amigo: number,
+  ) {
+    const id_usuario = req.user.id_usuario;
+    return this.bibliotecaService.getJuegosDeAmigo(id_usuario, id_amigo);
   }
 }

@@ -201,4 +201,72 @@ export class BibliotecaService {
 
     return { mensaje: 'Key devuelta y deshabilitada correctamente.' };
   }
+
+  async getJuegosDeAmigo(id_usuario: number, id_amigo: number) {
+    // Verifica si son amigos (usando id_usuario_a y id_usuario_b)
+    const amistad = await this.prisma.amistad.findFirst({
+      where: {
+        OR: [
+          { id_usuario_a: id_usuario, id_usuario_b: id_amigo },
+          { id_usuario_a: id_amigo, id_usuario_b: id_usuario },
+        ],
+      },
+    });
+
+    if (!amistad) {
+      throw new BadRequestException(
+        'No tienes permiso para ver la biblioteca de este usuario.',
+      );
+    }
+
+    // Buscar la biblioteca del amigo
+    const biblioteca = await this.prisma.biblioteca.findFirst({
+      where: { id_usuario: id_amigo },
+      include: {
+        biblioteca_detalle: {
+          include: {
+            key: {
+              include: {
+                juego: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!biblioteca) return [];
+
+    // Agrupar juegos únicos y buscar portadas
+    const juegosMap = new Map<
+      number,
+      {
+        id_juego: number;
+        titulo: string;
+        descripcion: string;
+        portada: string | null;
+      }
+    >();
+
+    for (const detalle of biblioteca.biblioteca_detalle) {
+      const juego = detalle.key.juego;
+      if (!juegosMap.has(juego.id_juego)) {
+        const { results } = await this.rawgService.searchGames(
+          juego.titulo,
+          1,
+          1,
+        );
+        const portada = results?.[0]?.background_image ?? null;
+
+        juegosMap.set(juego.id_juego, {
+          id_juego: juego.id_juego,
+          titulo: juego.titulo,
+          descripcion: juego.descripcion,
+          portada,
+        });
+      }
+    }
+
+    return Array.from(juegosMap.values());
+  }
 }
