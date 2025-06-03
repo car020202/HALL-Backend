@@ -21,7 +21,7 @@ export class JuegoService {
   }
 
   async buscarPorTitulo(query: string) {
-    return this.prisma.juego.findMany({
+    const juegos = await this.prisma.juego.findMany({
       where: {
         titulo: {
           contains: query,
@@ -32,7 +32,21 @@ export class JuegoService {
         id_juego: true,
         titulo: true,
       },
+      take: 10,
     });
+
+    const juegosConPortadas = await Promise.all(
+      juegos.map(async (j) => {
+        const { results } = await this.rawgService.searchGames(j.titulo, 1, 1);
+        const portada = results?.[0]?.background_image ?? null;
+        return {
+          ...j,
+          portada,
+        };
+      }),
+    );
+
+    return juegosConPortadas;
   }
 
   /** Solo BD: listar todos los juegos sin extras */
