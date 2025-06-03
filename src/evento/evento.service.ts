@@ -115,13 +115,21 @@ export class EventoService {
     });
 
     // 7. Cambiar estado de la key a "regalada"
-    const estadoRegalada = await this.prisma.estado_key.findFirst({
-      where: { nombre: 'regalada' },
+    // 7. Cambiar estado de la key a "vendida"
+    const estadoVendida = await this.prisma.estado_key.findFirst({
+      where: { nombre: 'vendida' },
     });
+
+    if (!estadoVendida) {
+      throw new Error(
+        "No se encontró el estado 'vendida' en la base de datos.",
+      );
+    }
+
     await this.prisma.key.update({
       where: { id_key: key.id_key },
       data: {
-        id_estado_key: estadoRegalada?.id_estado_key ?? key.id_estado_key,
+        id_estado_key: 2,
       },
     });
 
